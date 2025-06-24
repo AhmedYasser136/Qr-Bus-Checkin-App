@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>QR Scan System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1>🚍 QR Bus Check-In</h1>
+    <div id="status" class="status">No scan yet.</div>
+    <div id="details" class="details"></div>
+    <button onclick="fetchLastResult()">🔄 Refresh</button>
+    <hr />
+    <h2>➕ Add New Client</h2>
+    <form id="addClientForm">
+      <input type="text" id="newName" placeholder="Client Name" required />
+      <input type="text" id="newPhone" placeholder="Phone Number" required />
+      <input type="date" id="newDate" required />
+      <button type="submit">Add Client</button>
+    </form>
+    <div id="addResult" class="details"></div>
+    <hr />
+    <h2>📋 All Clients</h2>
+    <button onclick="loadClients()">🔄 Load All</button>
+    <table id="clientsTable" border="1" style="margin-top:10px; width:100%; text-align:left;">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Travel Date</th>
+          <th>ID</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <script src="script.js"></script>
+</body>
+
+</html>
