@@ -1,4 +1,5 @@
 
+// === public/script.js ===
 function fetchLastResult() {
   fetch('/last-result')
     .then(res => res.json())
@@ -48,7 +49,7 @@ document.getElementById('addClientForm').addEventListener('submit', (e) => {
         result.innerHTML = `
           ✅ Client added successfully.<br/>
           <strong>Client ID:</strong> ${data.id}<br/>
-          <img src="${data.qr}" alt="QR Code" style="margin-top:10px; width:200px;" /><br/>
+          <img src="${data.qr}" alt="QR Code" style="margin-top:10px; width:300px; height:300px; object-fit:contain;" /><br/>
           <a href="${data.qr}" download="qr-${data.id}.png">⬇️ Download QR</a>
         `;
         document.getElementById('addClientForm').reset();
@@ -72,6 +73,9 @@ function loadClients() {
           <td>${client.phone}</td>
           <td>${client.travel_date}</td>
           <td>${client.id}</td>
+          <td>
+            <a href="/generate-qr/${client.id}" target="_blank" download="qr-${client.id}.png">⬇️ Download</a>
+          </td>
         `;
         tbody.appendChild(row);
       });

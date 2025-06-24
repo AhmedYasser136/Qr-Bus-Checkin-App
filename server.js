@@ -74,6 +74,8 @@ app.get('/last-result', (req, res) => {
   } else {
     res.json({ status: "none" });
   }
+  // remove lastResult after sending
+  lastResult = null;
 });
 
 // API لإضافة عميل وتوليد QR
@@ -88,7 +90,12 @@ app.post('/add-client', async (req, res) => {
       console.error("DB insert error:", err.message);
       return res.status(500).json({ success: false, message: "DB error" });
     }
-    const qrImage = await QRCode.toDataURL(id);
+    const qrImage = await QRCode.toDataURL(id, {
+      errorCorrectionLevel: 'H',
+      type: 'image/png',
+      width: 600,
+      margin: 2
+    });
     return res.json({ success: true, qr: qrImage, id });
   });
 });
@@ -99,6 +106,18 @@ app.get('/all-clients', (req, res) => {
     if (err) return res.status(500).json({ error: "DB error" });
     res.json(rows);
   });
+});
+
+// API توليد QR للتحميل فقط
+app.get('/generate-qr/:id', async (req, res) => {
+  const id = req.params.id;
+  const qrImage = await QRCode.toDataURL(id, {
+    errorCorrectionLevel: 'H',
+    type: 'image/png',
+    width: 600,
+    margin: 2
+  });
+  res.json({ qr: qrImage });
 });
 
 // تشغيل السيرفر
