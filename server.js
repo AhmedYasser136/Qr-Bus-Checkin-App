@@ -1,19 +1,16 @@
 // === server.js ===
+
 const express = require('express');
-const multer = require('multer');
-const sharp = require('sharp');
-const jsQR = require('jsqr');
 const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
 const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
+const path = require('path');
 
 const app = express();
 const port = 3000;
 
-// إعداد ملفات الواجهة
-app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 // قاعدة البيانات
 const db = new sqlite3.Database('./clients.db');
@@ -26,89 +23,75 @@ db.serialize(() => {
   )`);
 });
 
-// تخزين مؤقت للنتيجة الأخيرة
+// آخر نتيجة
 let lastResult = null;
 
-// استقبال صور من ESP32-CAM
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+// === POST /scan { id } ← من ESP32-CAM بعد قراءة QR ===
+app.post('/scan', (req, res) => {
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ status: 'error', error: 'Missing id' });
 
-// مسار استقبال وتحليل الصورة
-app.post('/scan', upload.single('image'), async (req, res) => {
-  try {
-    const buffer = req.file ? req.file.buffer : req.body;
-    const raw = await sharp(buffer).raw().toBuffer({ resolveWithObject: true });
-    const qrCode = jsQR(new Uint8ClampedArray(raw.data), raw.info.width, raw.info.height);
-
-    if (!qrCode) {
-      lastResult = { status: "denied", reason: "QR not found" };
-      return res.status(400).json(lastResult);
+  db.get("SELECT * FROM clients WHERE id = ?", [id], (err, row) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ status: "error", error: "DB error" });
+    }
+    if (!row) {
+      lastResult = { status: "denied", reason: "Client not found", id };
+      return res.status(404).json(lastResult);
     }
 
-    const qrData = qrCode.data.trim();
-    db.get("SELECT * FROM clients WHERE id = ?", [qrData], (err, row) => {
-      if (err || !row) {
-        lastResult = { status: "denied", reason: "Client not found" };
-        return res.status(404).json(lastResult);
-      }
-
-      const today = new Date().toISOString().slice(0, 10);
-      if (row.travel_date === today) {
-        lastResult = { status: "granted", data: row.id, name: row.name, phone: row.phone, travel_date: row.travel_date };
-        return res.json(lastResult);
-      } else {
-        lastResult = { status: "denied", reason: "Invalid travel date", data: row.id, name: row.name };
-        return res.status(403).json(lastResult);
-      }
-    });
-  } catch (err) {
-    console.error("Error:", err.message);
-    return res.status(500).json({ status: "error", error: err.message });
-  }
+    const today = new Date().toISOString().slice(0, 10);
+    if (row.travel_date === today) {
+      lastResult = { status: "granted", id: row.id, name: row.name, phone: row.phone, travel_date: row.travel_date };
+      return res.json(lastResult);
+    } else {
+      lastResult = { status: "denied", reason: "Invalid travel date", id: row.id, name: row.name };
+      return res.status(403).json(lastResult);
+    }
+  });
 });
 
-// API تعرض آخر نتيجة
-app.get('/last-result', (req, res) => {
-  if (lastResult) {
-    res.json(lastResult);
-  } else {
-    res.json({ status: "none" });
-  }
-  // remove lastResult after sending
+// === عرض آخر نتيجة فحص ===
+app.get('/last-result', (_, res) => {
+  res.json(lastResult || { status: 'none' });
   lastResult = null;
 });
 
-// API لإضافة عميل وتوليد QR
+// === إضافة عميل جديد ===
 app.post('/add-client', async (req, res) => {
   const { name, phone, travel_date } = req.body;
   if (!name || !phone || !travel_date) {
     return res.status(400).json({ success: false, message: "Missing fields" });
   }
+
   const id = uuidv4();
   db.run("INSERT INTO clients (id, name, phone, travel_date) VALUES (?, ?, ?, ?)", [id, name, phone, travel_date], async (err) => {
     if (err) {
-      console.error("DB insert error:", err.message);
+      console.error(err);
       return res.status(500).json({ success: false, message: "DB error" });
     }
+
     const qrImage = await QRCode.toDataURL(id, {
       errorCorrectionLevel: 'H',
       type: 'image/png',
       width: 600,
       margin: 2
     });
-    return res.json({ success: true, qr: qrImage, id });
+
+    res.json({ success: true, qr: qrImage, id });
   });
 });
 
-// API تعرض جميع العملاء
-app.get('/all-clients', (req, res) => {
+// === استعراض كل العملاء ===
+app.get('/all-clients', (_, res) => {
   db.all("SELECT * FROM clients ORDER BY travel_date DESC", (err, rows) => {
     if (err) return res.status(500).json({ error: "DB error" });
     res.json(rows);
   });
 });
 
-// API توليد QR للتحميل فقط
+// === توليد QR لأي ID ===
 app.get('/generate-qr/:id', async (req, res) => {
   const id = req.params.id;
   const qrImage = await QRCode.toDataURL(id, {
@@ -122,5 +105,5 @@ app.get('/generate-qr/:id', async (req, res) => {
 
 // تشغيل السيرفر
 app.listen(port, () => {
-  console.log(`QR server running at http://localhost:${port}`);
+  console.log(`🚀 QR Check server running at http://localhost:${port}`);
 });

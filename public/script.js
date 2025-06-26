@@ -1,11 +1,10 @@
-
-// === public/script.js ===
 function fetchLastResult() {
   fetch('/last-result')
     .then(res => res.json())
     .then(data => {
       const statusDiv = document.getElementById('status');
       const detailsDiv = document.getElementById('details');
+
       if (data.status === 'granted') {
         statusDiv.textContent = '✅ Access Granted';
         statusDiv.style.color = 'green';
@@ -20,7 +19,7 @@ function fetchLastResult() {
         statusDiv.style.color = 'red';
         detailsDiv.innerHTML = `
           <p>${data.reason}</p>
-          ${data.name ? `<p><strong>Name:</strong> ${data.name}</p>` : ""}
+          ${data.name ? `<p><strong>Name:</strong> ${data.name}</p>` : ''}
         `;
       } else {
         statusDiv.textContent = '⚠️ No scan yet';
@@ -30,8 +29,12 @@ function fetchLastResult() {
     });
 }
 
-document.getElementById('addClientForm').addEventListener('submit', (e) => {
+// ---------------------------------------------------
+// 2) إضافة عميل جديد + توليد وتحميل QR
+// ---------------------------------------------------
+document.getElementById('addClientForm').addEventListener('submit', e => {
   e.preventDefault();
+
   const name = document.getElementById('newName').value.trim();
   const phone = document.getElementById('newPhone').value.trim();
   const travel_date = document.getElementById('newDate').value;
@@ -45,27 +48,32 @@ document.getElementById('addClientForm').addEventListener('submit', (e) => {
     .then(data => {
       const result = document.getElementById('addResult');
       if (data.success) {
-        result.style.color = "green";
+        result.style.color = 'green';
         result.innerHTML = `
-          ✅ Client added successfully.<br/>
-          <strong>Client ID:</strong> ${data.id}<br/>
-          <img src="${data.qr}" alt="QR Code" style="margin-top:10px; width:300px; height:300px; object-fit:contain;" /><br/>
-          <a href="${data.qr}" download="qr-${data.id}.png">⬇️ Download QR</a>
-        `;
+        ✅ Client added successfully.<br/>
+        <strong>Client ID:</strong> ${data.id}<br/>
+        <img src="${data.qr}" alt="QR Code"
+             style="margin-top:10px;width:300px;height:300px;object-fit:contain;" /><br/>
+        <a href="${data.qr}" download="qr-${data.id}.png">⬇️ Download QR</a>
+      `;
         document.getElementById('addClientForm').reset();
       } else {
-        result.textContent = "❌ " + data.message;
-        result.style.color = "red";
+        result.textContent = '❌ ' + data.message;
+        result.style.color = 'red';
       }
     });
 });
 
+// ---------------------------------------------------
+// 3) تحميل جدول بجميع العملاء مع زر تحميل الـ QR
+// ---------------------------------------------------
 function loadClients() {
   fetch('/all-clients')
     .then(res => res.json())
     .then(data => {
       const tbody = document.querySelector('#clientsTable tbody');
-      tbody.innerHTML = '';
+      tbody.innerHTML = ''; // مسح القديم
+
       data.forEach(client => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -74,7 +82,9 @@ function loadClients() {
           <td>${client.travel_date}</td>
           <td>${client.id}</td>
           <td>
-            <a href="/generate-qr/${client.id}" target="_blank" download="qr-${client.id}.png">⬇️ Download</a>
+            <a href="/generate-qr/${client.id}"
+               target="_blank"
+               download="qr-${client.id}.png">⬇️ Download</a>
           </td>
         `;
         tbody.appendChild(row);
