@@ -1,27 +1,70 @@
-# QR Bus Check-In Device 🚌📷
+# 📡 QR Bus Scanner – API Specification 
 
-جهاز يعمل بـ ESP32-CAM لقراءة QR والتحقق من صلاحية الركوب على الباص عن طريق API.
-
----
-
-## 🧩 مكونات المشروع
-
-- ✅ `server.js` → سيرفر Node.js للتأكد من الحجز
-- ✅ `clients.db` → قاعدة SQLite تحتوي على جدول العملاء
-- ✅ `esp32_cam.ino` → كود ESP32-CAM (يفك QR ويبعته للسيرفر)
+The device scans a QR code and sends the `id` to this API to verify if a passenger is allowed to board the bus.
 
 ---
 
-## 🔌 تجهيز السيرفر
+## 🔌 Endpoint
 
-### 1. المتطلبات:
-- Node.js
-- SQLite (ملف قاعدة بيانات اسمه `clients.db` يحتوي على جدول `clients`):
+### `POST /scan`
 
-```sql
-CREATE TABLE clients (
-  id TEXT PRIMARY KEY,
-  name TEXT,
-  phone TEXT,
-  travel_date TEXT
-);
+- **Protocol:** HTTP
+- **Method:** POST
+- **Content-Type:** `application/json`
+
+### ✅ Request Body
+
+```json
+{
+  "id": "cdd948fa-396e-4226-82cd-591a9d9cb157"
+}
+```
+
+---
+
+## 📥 Response Format
+
+### ✅ Access Granted
+
+```json
+{
+  "status": "granted",
+  "id": "uuid",
+  "name": "Client Name",
+  "phone": "010...",
+  "travel_date": "YYYY-MM-DD"
+}
+```
+
+### ❌ Access Denied
+
+```json
+{
+  "status": "denied",
+  "reason": "Invalid travel date",
+  "id": "uuid",
+  "name": "Client Name"
+}
+```
+
+### ⚠️ Error
+
+```json
+{
+  "status": "error",
+  "error": "Some error message"
+}
+```
+
+---
+
+## ✅ Behavior Summary
+
+| Condition              | API Response  | Device Behavior      |
+|------------------------|---------------|-----------------------|
+| Valid QR & travel date | `granted`     | ✅ Green LED ON       |
+| Invalid or expired QR  | `denied`      | ❌ Red LED ON         |
+| Connection/server error| `error`       | All LEDs OFF          |
+
+---
+
