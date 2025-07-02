@@ -87,8 +87,8 @@ function loadClients() {
 // loadClients , fetchLastResult(); every 5 seconds
 setInterval(() => {
   fetchLastResult();
-}, 500);
+}, 1000);
 
 setInterval(() => {
   loadClients();
-}, 5000);
+}, 1000);

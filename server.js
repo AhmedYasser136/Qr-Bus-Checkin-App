@@ -4,6 +4,7 @@ const sqlite3 = require("sqlite3").verbose();
 const QRCode = require("qrcode");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
+const { log } = require("console");
 
 const app = express();
 const port = 3000;
@@ -29,6 +30,7 @@ let lastResult = null; // تخزين آخر نتيجة
 // ------------------------------
 app.post("/scan", (req, res) => {
   const { id } = req.body;
+  log(`Received scan request for ID: ${id}`);
   if (!id)
     return res.status(400).json({ status: "error", error: "Missing id" });
 
